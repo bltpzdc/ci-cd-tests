@@ -1,37 +1,38 @@
-name: Generate Doxygen Docs to Wiki
+name: Deploy Doxygen to GitHub Pages
 
-on: [push]
+on:
+  push:
+    branches: [ main, master ]
 
 jobs:
-  Generate-Documentation:
+  deploy-docs:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+      
     steps:
-    - name: Checkout main repo
+    - name: Checkout
       uses: actions/checkout@v5
       
-    - name: Checkout wiki repo
-      uses: actions/checkout@v5
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y doxygen graphviz
+        
+    - name: Generate documentation
+      run: |
+        doxygen doxygen.conf
+        
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
       with:
-        repository: ${{ github.repository }}.wiki
-        path: ./wiki
+        path: docs/html/
         
-    - name: Install Doxygen and Graphviz
-      run: sudo apt-get install -y doxygen graphviz
-      
-    - name: Generate Doxygen HTML
-      run: doxygen doxygen.conf
-      
-    - name: Prepare wiki directory
-      run: |
-        rm -rf wiki/*.html wiki/*.css wiki/*.js wiki/*.map wiki/*.md
-        cp -r docs/html/* wiki/
-        
-    - name: Deploy to Wiki
-      run: |
-        cd wiki
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        git add .
-        git commit -m "Auto-generated documentation from ${{ github.sha }}" || exit 0
-        git push
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
