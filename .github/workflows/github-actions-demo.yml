@@ -1,18 +1,37 @@
-name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+name: Generate Doxygen Docs to Wiki
+
 on: [push]
+
 jobs:
-  Explore-GitHub-Actions:
+  Generate-Documentation:
     runs-on: ubuntu-latest
+    
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
-        uses: actions/checkout@v5
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
-        run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+    - name: Checkout main repo
+      uses: actions/checkout@v5
+      
+    - name: Checkout wiki repo
+      uses: actions/checkout@v5
+      with:
+        repository: ${{ github.repository }}.wiki
+        path: ./wiki
+        
+    - name: Install Doxygen and Graphviz
+      run: sudo apt-get install -y doxygen graphviz
+      
+    - name: Generate Doxygen HTML
+      run: doxygen doxygen.conf
+      
+    - name: Prepare wiki directory
+      run: |
+        rm -rf wiki/*.html wiki/*.css wiki/*.js wiki/*.map wiki/*.md
+        cp -r docs/html/* wiki/
+        
+    - name: Deploy to Wiki
+      run: |
+        cd wiki
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add .
+        git commit -m "Auto-generated documentation from ${{ github.sha }}" || exit 0
+        git push
